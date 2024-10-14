@@ -1,6 +1,13 @@
+import { IssueComment, LogVerificationPayload } from "../types/interface.js";
+import {
+  compareStructures,
+  extractJSONObject,
+  getRequiredStructure,
+  sendVerificationPayload,
+} from "./general.js";
 import {
   exploreGitHubFolder,
-  LogVerificationPayload,
+  getCommitedStructure,
   parseGitHubUrl,
 } from "./gitUtil.js";
 
@@ -9,6 +16,60 @@ export class VerifyLogs {
   version: string | null = null;
   npType: string | null = null;
   gitLink: string | null = null;
+  commonStructure: Record<string, string[]> = {};
+  requiredSturcture: Record<string, string[]> = {};
+  stepNum: number;
+
+  constructor() {
+    this.stepNum = 0;
+  }
+
+  async run(comment: IssueComment) {
+    let response = "Please fill out the details first";
+    if (comment.type === "user") {
+      if (this.stepNum <= 1) {
+        try {
+          this.extractData(comment.comment);
+        } catch (e) {
+          var next = this.getNextMessage();
+          next += "\n" + "- Provide a Valid JSON";
+          return {
+            response: next,
+            domain: this.domain,
+            required: null,
+          };
+        }
+        this.tryIncrementStepNum();
+        response = this.getNextMessage();
+      }
+
+      if (this.stepNum == 2) {
+        response = await this.verifyStructure();
+        console.log("common", this.commonStructure);
+        if (Object.keys(this.commonStructure).length > 0) {
+          this.stepNum = 3;
+        }
+      }
+      if (this.stepNum == 3) {
+        const res = await this.verifyLogs();
+        if (res) {
+          response += res;
+          this.stepNum = 4;
+        } else {
+          response = "Failed to verify logs";
+        }
+      }
+    }
+    if (this.stepNum >= 4) {
+      response +=
+        "\n To verify more logs or to re-verify the logs, please open or re-open a new PR";
+    }
+    return {
+      response: response,
+      domain: this.domain,
+      required: this.requiredSturcture,
+    };
+  }
 
   getNextMessage() {
     if (this.domain === null || this.version === null || this.npType === null) {
@@ -21,7 +82,7 @@ export class VerifyLogs {
   }
   extractData(userMessage: string) {
     try {
-      const json = this.extractJSONObject(userMessage);
+      const json = extractJSONObject(userMessage);
       if (json.domain) this.domain = json.domain;
       if (json.version) this.version = json.version;
       if (json.npType) this.npType = json.npType;
@@ -29,12 +90,37 @@ export class VerifyLogs {
       return "Data extracted successfully";
     } catch (e) {
       console.error("Failed to parse JSON:", e);
-      return "Plase re-check the JSON format";
+      throw new Error("Failed to parse JSON");
     }
   }
 
-  verifyStructure() {
-    return true;
+  async verifyStructure() {
+    if (
+      this.domain === null ||
+      this.version === null ||
+      this.npType === null ||
+      this.gitLink === null
+    ) {
+      return "Please fill out the details first";
+    }
+    const requiredStructure = await getRequiredStructure(
+      this.domain,
+      this.version
+    );
+    if (requiredStructure === undefined) {
+      return "Failed to fetch required structure";
+    }
+    const commitedStructure = await getCommitedStructure(this.gitLink);
+    const comparison = await compareStructures(
+      requiredStructure,
+      commitedStructure
+    );
+    this.commonStructure = comparison.common;
+    this.requiredSturcture = requiredStructure;
+    if (Object.keys(comparison.error).length > 0) {
+      return JSON.stringify(comparison.error, null, 2);
+    }
+    return "good";
   }
 
   async verifyLogs() {
@@ -59,49 +145,48 @@ export class VerifyLogs {
       branch,
       folderPath
     )) as LogVerificationPayload[];
+    console.log("curlres", curls);
     for (const curl of curls) {
       curl.domain = this.domain;
       curl.version = this.version;
     }
-    return curls;
+    const finalResponse: any = {};
+    for (const curl of curls) {
+      finalResponse[curl.flow] = await sendVerificationPayload(curl);
+    }
+    return JSON.stringify(finalResponse, null, 2);
   }
-
-  extractJSONObject(str: string) {
-    // Use a regular expression to match a JSON-like object
-    const jsonMatch = str.match(/{[^}]+}/);
-
-    if (jsonMatch) {
-      // Extract the JSON-like string
-      let jsonString = jsonMatch[0];
-
-      // Replace single quotes with double quotes to make it valid JSON
-      jsonString = jsonString.replace(/'/g, '"');
-
-      try {
-        // Parse and return the JSON object
-        return JSON.parse(jsonString);
-      } catch (error) {
-        throw new Error("Invalid JSON");
+  tryIncrementStepNum() {
+    if (this.stepNum == 0) {
+      if (
+        this.domain !== null &&
+        this.version !== null &&
+        this.npType !== null
+      ) {
+        this.stepNum = 1;
       }
     }
-
-    return null; // Return null if no JSON-like object is found
+    if (this.stepNum == 1) {
+      if (this.gitLink !== null) {
+        this.stepNum = 2;
+      }
+    }
   }
 }
 
 export const logVerifyOutputs = [
-  `Hi, Is this PR for your log verifications? 
-  If so, please fill out the following template and comment back:
+  `Hi, please fill out the following template and comment back:
   
   \`\`\`json
   {
     "domain": "ENTER DOMAIN",
     "version": "ENTER VERSION",
-    "npType": "BAP,BPP or BOTH"
+    "npType": "BAP,BPP or BOTH",
+    "gitLink": "https://github.com/{User}/v1.2.0-logs/tree/master/{Name}/RSF"
   }
   \`\`\`
   
-  Otherwise, please ignore this.
+   - Tag me in the comment
   `,
   `Can you provide me the folder path for the logs? in your forked repo \n
   example: https://github.com/{User}/v1.2.0-logs/tree/master/{Name}/RSF`,

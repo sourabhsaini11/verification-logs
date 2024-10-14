@@ -1,28 +1,26 @@
 import { Probot } from "probot";
+import { checkBotTagged, generateFolderTree } from "./utils/general.js";
+import { IssueComment } from "./types/interface.js";
+import { chatRunner } from "./controller/index.js";
+import { botUserName } from "./constants/index.js";
+import { generateFinalMessage, labelPr } from "./utils/gitUtil.js";
+// import { runTest } from "./test/chat.test.js";
 
 export default (app: Probot) => {
-  // app.on("issues.opened", async (context) => {
-  //   const issueComment = context.issue({
-  //     body: "Thanks for opening this issue!ß",
-  //   });
-  //   await context.octokit.issues.createComment(issueComment);
-  // });
-
   app.on(["pull_request.opened", "pull_request.reopened"], async (context) => {
     const prComment = context.issue({
-      body: "Thanks for opening this PR!",
+      body: `Thanks for opening this PR! Please tag me at ${botUserName} in a comment to verify the logs. `,
     });
     await context.octokit.issues.createComment(prComment);
   });
-
   app.on("issue_comment.created", async (context) => {
     if (context.isBot) {
-      return; // Ignore comments created by bots
+      return;
     }
-
-    // Get the comment body and print it
     const newComment = context.payload.comment.body;
-    console.log(`New Comment: ${newComment}`);
+    if (!checkBotTagged(newComment)) {
+      return;
+    }
 
     // Check if the comment is on a pull request (since PRs are treated as issues in GitHub's API)
     const issueNumber = context.payload.issue.number;
@@ -36,14 +34,34 @@ export default (app: Probot) => {
       issue_number: issueNumber,
     });
 
-    // Print all comments on the PR/issue
-    comments.forEach((comment) => {
-      console.log(`Comment by ${comment.user?.type}: ${comment.body}`);
+    var prevComments: IssueComment[] = comments.map((c) => {
+      return { comment: c.body ?? "", type: c.user?.type || "" };
     });
-  });
-  // For more information on building apps:
-  // https://probot.github.io/docs/
+    const response = await chatRunner(
+      { comment: newComment, type: "user" },
+      prevComments
+    );
+    const responseBack = response.response;
+    let finalResponse = responseBack;
 
-  // To get your app running against GitHub, see:
-  // https://probot.github.io/docs/development/
+    if (responseBack) {
+      if (response.domain) {
+        labelPr(response.domain, context);
+      }
+      if (responseBack.length > 1000) {
+        finalResponse = await generateFinalMessage(responseBack);
+      }
+      if (response.required) {
+        finalResponse += "\n" + "Required Structure: \n";
+        const tree = generateFolderTree(response.required);
+        finalResponse += tree;
+      }
+      console.log("finalResponse", finalResponse);
+
+      const prComment = context.issue({
+        body: finalResponse.slice(0, 65535),
+      });
+      await context.octokit.issues.createComment(prComment);
+    }
+  });
 };
