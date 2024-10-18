@@ -96,8 +96,12 @@ function getSimplifiedDomain(domain: string) {
   return "fis";
 }
 
-export function generateFolderTree(folders: Record<string, string[]>): string {
-  let tree = "";
+export function generateFolderTree(
+  folders: Record<string, string[]>,
+  validationType: string,
+  domain: string
+): string {
+  let tree = `${domain}/${validationType}/`;
 
   for (const folder in folders) {
     // Add folder name to tree

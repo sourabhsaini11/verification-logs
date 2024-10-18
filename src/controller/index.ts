@@ -4,15 +4,24 @@ export async function chatRunner(
   latestComment: IssueComment,
   previousComments: IssueComment[]
 ) {
-  const verifyLogs = new VerifyLogs();
-  let response: LogVerificationResponse = {
-    response: "Please fill out the details first",
-    domain: "",
-    required: null,
-  };
-  for (const comment of previousComments) {
-    response = await verifyLogs.run(comment);
+  try {
+    const verifyLogs = new VerifyLogs();
+    let response: LogVerificationResponse = {
+      response: "Please fill out the details first",
+      domain: "",
+      required: null,
+    };
+    for (const comment of previousComments) {
+      response = await verifyLogs.run(comment);
+    }
+    response = await verifyLogs.run(latestComment);
+    return response;
+  } catch (e: any) {
+    console.error(e);
+    return {
+      response: `Error Occured while running the chat: ${e?.message}`,
+      domain: null,
+      required: null,
+    };
   }
-  response = await verifyLogs.run(latestComment);
-  return response;
 }

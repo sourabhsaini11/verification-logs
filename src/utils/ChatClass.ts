@@ -1,13 +1,12 @@
 import { IssueComment, LogVerificationPayload } from "../types/interface.js";
 import {
-  compareStructures,
   extractJSONObject,
   getRequiredStructure,
   sendVerificationPayload,
 } from "./general.js";
 import {
   exploreGitHubFolder,
-  getCommitedStructure,
+  // getCommitedStructure,
   parseGitHubUrl,
 } from "./gitUtil.js";
 
@@ -107,19 +106,24 @@ export class VerifyLogs {
       this.domain,
       this.version
     );
+    console.log("required", requiredStructure);
     if (requiredStructure === undefined) {
-      return "Failed to fetch required structure";
+      return "**🚨 Failed to fetch required structure, please check the domain and version**";
     }
-    const commitedStructure = await getCommitedStructure(this.gitLink);
-    const comparison = await compareStructures(
-      requiredStructure,
-      commitedStructure
-    );
-    this.commonStructure = comparison.common;
     this.requiredSturcture = requiredStructure;
-    if (Object.keys(comparison.error).length > 0) {
-      return JSON.stringify(comparison.error, null, 2);
-    }
+
+    // const commitedStructure = await getCommitedStructure(this.gitLink);
+    // if (commitedStructure === undefined) {
+    //   return "**🚨 Failed to fetch commited structure, please check the GitHub link**";
+    // }
+    // const comparison = await compareStructures(
+    //   requiredStructure,
+    //   commitedStructure
+    // );
+    // this.commonStructure = comparison.common;
+    // if (Object.keys(comparison.error).length > 0) {
+    //   return JSON.stringify(comparison.error, null, 2);
+    // }
     return "good";
   }
 

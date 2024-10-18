@@ -1,10 +1,10 @@
 import { Probot } from "probot";
-import { checkBotTagged, generateFolderTree } from "./utils/general.js";
+import { checkBotTagged } from "./utils/general.js";
 import { IssueComment } from "./types/interface.js";
 import { chatRunner } from "./controller/index.js";
 import { botUserName } from "./constants/index.js";
-import { generateFinalMessage, labelPr } from "./utils/gitUtil.js";
-// import { runTest } from "./test/chat.test.js";
+import { labelPr } from "./utils/gitUtil.js";
+import { generateFinalMessage } from "./services/gistService.js";
 
 export default (app: Probot) => {
   app.on(["pull_request.opened", "pull_request.reopened"], async (context) => {
@@ -21,11 +21,25 @@ export default (app: Probot) => {
     if (!checkBotTagged(newComment)) {
       return;
     }
+    if (context.payload.issue.pull_request == undefined) {
+      return;
+    }
+
+    // const changedFiles = context.payload.issue.pull_request.
+    // console.log(JSON.stringify(context, null, 2));
 
     // Check if the comment is on a pull request (since PRs are treated as issues in GitHub's API)
     const issueNumber = context.payload.issue.number;
     const owner = context.payload.repository.owner.login;
     const repo = context.payload.repository.name;
+
+    const changedFiles = await context.octokit.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: issueNumber,
+    });
+    // const changedFilesList = changedFiles.data.map((file) => file.filename);
+    // console.log("changedFilesList", changedFilesList);
 
     // Fetch all comments on the pull request/issue
     const { data: comments } = await context.octokit.issues.listComments({
@@ -33,10 +47,11 @@ export default (app: Probot) => {
       repo,
       issue_number: issueNumber,
     });
-
+    console.log("comments", comments);
     var prevComments: IssueComment[] = comments.map((c) => {
       return { comment: c.body ?? "", type: c.user?.type || "" };
     });
+
     const response = await chatRunner(
       { comment: newComment, type: "user" },
       prevComments
@@ -49,12 +64,12 @@ export default (app: Probot) => {
         labelPr(response.domain, context);
       }
       if (responseBack.length > 1000) {
-        finalResponse = await generateFinalMessage(responseBack);
+        finalResponse = await generateFinalMessage(responseBack, issueNumber);
       }
       if (response.required) {
-        finalResponse += "\n" + "Required Structure: \n";
-        const tree = generateFolderTree(response.required);
-        finalResponse += tree;
+        finalResponse += "\n\n" + "Required Structure: \n";
+        // const tree = generateFolderTree(response.required);
+        // finalResponse += tree;
       }
       console.log("finalResponse", finalResponse);
 

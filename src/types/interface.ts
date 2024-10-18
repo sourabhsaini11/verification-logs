@@ -17,3 +17,11 @@ export interface LogVerificationResponse {
   domain: string | null;
   required: Record<string, string[]> | null;
 }
+
+export interface PrChatBotRequiments {
+  issueNumber: number;
+  forkOwnerId: string;
+  forkRepoName: string;
+  forkBranch: string;
+  changedFiles: string[];
+}

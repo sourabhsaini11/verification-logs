@@ -1,6 +1,6 @@
 import axios from "axios";
 import { LogVerificationPayload } from "../types/interface.js";
-import { botUserName } from "../constants/index.js";
+
 // import { Context } from "probot/lib/context.js";
 export async function fetchGitHubFiles(
   owner: string,
@@ -100,91 +100,36 @@ const templatePayload: LogVerificationPayload = {
   payload: {},
 };
 
-async function getStructureHelper(
+export async function getStructureHelper(
   owner: string,
   repo: string,
   branch: string,
   folderPath: string
 ) {
-  const files = await fetchGitHubFiles(owner, repo, branch, folderPath);
-  const struct: any = {};
-  const li: string[] = [];
-  for (const file of files) {
-    if (file.type === "file") {
-      li.push(file.name.split(".")[0]);
-    } else if (file.type === "dir") {
-      const subStruct = await getStructureHelper(
-        owner,
-        repo,
-        branch,
-        file.path
-      );
-      struct[file.name] = subStruct;
-    }
-  }
-  if (li.length > 0) {
-    return li;
-  }
-  return struct;
-}
-
-export async function getCommitedStructure(url: string) {
-  const parsedUrl = parseGitHubUrl(url);
-  if (!parsedUrl) {
-    console.log("Invalid GitHub URL format.");
-    return;
-  }
-  const { owner, repo, branch, folderPath } = parsedUrl;
-  const structure = await getStructureHelper(owner, repo, branch, folderPath);
-  return structure;
-}
-
-export async function generateFinalMessage(message: string) {
-  var token = process.env.GIST_TOKEN;
-  if (!token) {
-    return "Please add GIST_TOKEN in the environment variables";
-  }
-  const url = await createGist(token, message);
-  if (url) {
-    return `:white_check_mark: [View the logs](${url})
-    \n please tag me at ${botUserName} in a comment to re-verfiy the logs. or 
-    open a new PR to verify new logs.`;
-  }
-  return url ?? "Failed to create pasteBin";
-}
-
-import { Octokit } from "@octokit/rest";
-
-/**
- * Creates a GitHub Gist with the provided content and returns the Gist URL.
- *
- * @param authToken - Your GitHub personal access token with 'gist' scope.
- * @param message - The content to be saved in the Gist.
- * @param fileName - (Optional) The name of the file in the Gist. Defaults to 'response.txt'.
- * @param isPublic - (Optional) Whether the Gist should be public or secret. Defaults to true (public).
- * @returns The URL of the created Gist.
- */
-async function createGist(
-  authToken: string,
-  message: string,
-  fileName: string = "response.txt",
-  isPublic: boolean = true
-): Promise<string | undefined> {
-  // Initialize Octokit with authentication
-  const octokit = new Octokit({ auth: authToken });
-
   try {
-    // Create the Gist
-    const response = await octokit.gists.create({
-      files: { [fileName]: { content: message } },
-      public: isPublic,
-    });
-
-    // Return the URL of the created Gist
-    return response.data.html_url;
-  } catch (error: any) {
-    // Handle errors
-    throw new Error(`Failed to create Gist: ${error.message}`);
+    const files = await fetchGitHubFiles(owner, repo, branch, folderPath);
+    const struct: any = {};
+    const li: string[] = [];
+    for (const file of files) {
+      if (file.type === "file") {
+        li.push(file.name.split(".")[0]);
+      } else if (file.type === "dir") {
+        const subStruct = await getStructureHelper(
+          owner,
+          repo,
+          branch,
+          file.path
+        );
+        struct[file.name] = subStruct;
+      }
+    }
+    if (li.length > 0) {
+      return li;
+    }
+    return struct;
+  } catch (err) {
+    console.log("Error in getStructureHelper", err);
+    return undefined;
   }
 }
 
@@ -201,7 +146,7 @@ export async function labelPr(domain: string, context: any) {
         repo,
       }
     );
-    console.log("repoLabels", repoLabels);
+    // console.log("repoLabels", repoLabels);
     // Check if the specified label exists in the repository
     const labelExistsInRepo = repoLabels.some(
       (label: any) => label.name === domain
