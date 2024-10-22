@@ -9,7 +9,7 @@ export function checkBotTagged(message: string) {
 export function extractJSONObject(str: string) {
   // Use a regular expression to match a JSON-like object
   const jsonMatch = str.match(/{[^}]+}/);
-
+  // console.log(chalk.yellow("JSON Match: ", jsonMatch, str));
   if (jsonMatch) {
     // Extract the JSON-like string
     let jsonString = jsonMatch[0];
@@ -21,11 +21,12 @@ export function extractJSONObject(str: string) {
       // Parse and return the JSON object
       return JSON.parse(jsonString);
     } catch (error) {
-      throw new Error("Invalid JSON");
+      // console.error("Error parsing JSON-like object", error);
+      return undefined;
     }
   }
 
-  return null; // Return null if no JSON-like object is found
+  return undefined; // Return null if no JSON-like object is found
 }
 
 export async function compareStructures(
@@ -114,4 +115,8 @@ export function generateFolderTree(
   }
 
   return tree;
+}
+
+export function generateMetaResponse(status: string, description: string) {
+  return `$$ {"commitSatus":"${status}","description":"${description}"}`;
 }

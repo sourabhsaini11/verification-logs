@@ -24,4 +24,5 @@ export interface PrChatBotRequiments {
   forkRepoName: string;
   forkBranch: string;
   changedFiles: string[];
+  context?: any;
 }

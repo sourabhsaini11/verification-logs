@@ -1,6 +1,11 @@
+import chalk from "chalk";
 import { supportedDomains } from "../constants/index.js";
 import { LogVerificationPayload } from "../types/interface.js";
-import { getRequiredStructure, sendVerificationPayload } from "./general.js";
+import {
+  generateMetaResponse,
+  getRequiredStructure,
+  sendVerificationPayload,
+} from "./general.js";
 import { exploreGitHubFolder, getStructureHelper } from "./gitUtil.js";
 
 function verifyDomain(domain: string) {
@@ -16,7 +21,7 @@ export function validRequest(domain: string) {
   }
   return {
     response: `😓 Oops! this Domain ${domain} is not yet supported by the bot \n 
-    > Supported Domains are: ${supportedDomains.join(", ")}_`,
+    > Supported Domains are: ${supportedDomains.join(", ")}`,
     valid: false,
   };
 }
@@ -77,11 +82,16 @@ export function validPullRequest(domain: string, changedFileNames: string[]) {
       )}). Please ensure that all changes are within the same "NP_NAME" folder.`
     );
   }
-
+  const finalResponse =
+    errors.join("\n") +
+    generateMetaResponse(
+      "failure",
+      "please check the pr comments and correct the files"
+    );
   // If any errors were collected, return them
   if (errors.length > 0) {
     return {
-      response: errors.join("\n"), // Join all errors into a single string
+      response: finalResponse, // Join all errors into a single string
       valid: false,
     };
   }
@@ -112,13 +122,15 @@ export async function verifyLogs(
     repoName
   );
   if (!struct.valid) {
-    return struct.message;
+    return struct.message as string;
   }
+  const fixed = `${folderPath}/${verificationType}`;
+
   const curls = (await exploreGitHubFolder(
     owner,
-    repoName,
+    repoName.split("/")[1],
     branch,
-    folderPath
+    fixed
   )) as LogVerificationPayload[];
   for (const curl of curls) {
     curl.domain = domain;
@@ -128,7 +140,7 @@ export async function verifyLogs(
   for (const curl of curls) {
     finalResponse[curl.flow] = await sendVerificationPayload(curl);
   }
-  finalResponse["structure"] = struct.message;
+  finalResponse["missing-files"] = struct.message;
   return JSON.stringify(finalResponse, null, 2);
 }
 
@@ -150,9 +162,10 @@ async function verifyStructure(
   }
   const fixed = `${folderPath}/${verificationType}`;
   const requiredFiles = convertToFiles(requiredStruct, fixed);
+  console.log(chalk.yellow(owner, repoName, branch, fixed));
   const commitedStruct = await getStructureHelper(
     owner,
-    repoName,
+    repoName.split("/")[1],
     branch,
     fixed
   );
@@ -168,16 +181,16 @@ async function verifyStructure(
   );
   return {
     message: missingFiles.length
-      ? generateMessage(missingFiles)
+      ? missingFiles
       : "✅ All required files are present",
     valid: true,
   };
 }
 
-function generateMessage(missingFiles: string[]) {
-  const message = "🚨 Missing files: ";
-  return missingFiles.reduce((acc, file) => acc + `\n- ${file}`, message);
-}
+// function generateMessage(missingFiles: string[]) {
+//   const message = "🚨 Missing files: ";
+//   return missingFiles.reduce((acc, file) => acc + `\n- ${file}`, message);
+// }
 
 function convertToFiles(
   requiredStruct: Record<string, string[]>,

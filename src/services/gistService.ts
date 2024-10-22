@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { botUserName } from "../constants/index.js";
+// import { botUserName } from "../constants/index.js";
 
 export async function generateFinalMessage(
   message: string,
@@ -11,11 +11,9 @@ export async function generateFinalMessage(
   }
   const url = await createGist(token, message, `response-${issueNumber}.txt`);
   if (url) {
-    return `:white_check_mark: [View the logs](${url})
-      \n please tag me at ${botUserName} in a comment to re-verfiy the logs. or 
-      open a new PR to verify new logs.`;
+    return `:white_check_mark: [View the logs](${url})`;
   }
-  return url ?? "Failed to create pasteBin";
+  return url ?? "Failed to create gist";
 }
 
 /**

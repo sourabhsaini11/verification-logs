@@ -12,13 +12,14 @@ export class ChatBotController {
   context: PrChatBotRequiments;
   constructor(
     requirements: PrChatBotRequiments,
-    userResponses = [],
-    botResponses = []
+    userResponses: string[] = [],
+    botResponses: string[] = []
   ) {
     this.InitBot();
     this.userResponses = userResponses;
     this.botResponses = botResponses;
     this.context = requirements;
+    this.currentRoute = this.loadRoute(botResponses);
   }
   private InitBot() {
     this.routes = [new LogVerificationRoute()];
@@ -34,26 +35,49 @@ export class ChatBotController {
     }
     return message;
   }
-  public replyToUser(message: string) {
+  public async replyToUser(message: string) {
     if (message === "BOT_NHK") {
       this.InitBot();
       return "🔄 Conversation reset successfully! \n" + this.initMessage();
     }
-    let reply =
-      this.currentRoute === undefined
-        ? this.tryFindingRoute(message)
-        : this.currentRoute.generateNextMessage(
-            message,
-            this.userResponses,
-            this.botResponses,
-            this.context
-          );
+    let reply = "";
+    if (this.userResponses.length === 1) {
+      reply = this.initMessage();
+    } else {
+      reply =
+        this.currentRoute === undefined
+          ? await this.tryFindingRoute(message)
+          : await this.generateRouteMessage(
+              message,
+              this.userResponses,
+              this.botResponses,
+              this.context,
+              this.currentRoute
+            );
+    }
+    const meta =
+      reply.split("$$").length > 1 ? reply.split("$$")[1] : undefined;
+    reply = reply.split("$$")[0];
     reply += `\n > Note: \n > 1. Always tag me at ${botUserName} in the comment to get a reply \n > 2. Comment 'BOT_NHK' to reset the conversation anytime`;
-    // this.userResponses.push(message);
-    // this.botResponses.push(reply);
+    reply += meta ? `$$ ${meta}` : "";
     return reply;
   }
-  private tryFindingRoute(message: string) {
+  private async generateRouteMessage(
+    latestMessage: string,
+    userResponses: string[],
+    botResponses: string[],
+    context: PrChatBotRequiments,
+    route: ConversationRoute
+  ) {
+    const reply = await route.generateNextMessage(
+      latestMessage,
+      userResponses,
+      botResponses,
+      context
+    );
+    return `> ~${route.saveWord()} \n\n ${reply}`; // saving data in the comments for future reference
+  }
+  private async tryFindingRoute(message: string) {
     const triggeredRoutes = [];
     for (const route of this.routes) {
       if (route.isTriggered(message)) {
@@ -73,11 +97,28 @@ export class ChatBotController {
       );
     }
     this.currentRoute = triggeredRoutes[0];
-    return this.currentRoute.generateNextMessage(
+    return this.generateRouteMessage(
       message,
       this.userResponses,
       this.botResponses,
-      this.context
+      this.context,
+      this.currentRoute
     );
+  }
+  private loadRoute(botMessages: string[]) {
+    let loadedroute = undefined;
+    for (const message of botMessages) {
+      for (const route of this.routes) {
+        if (message.includes(`~${route.saveWord()}`)) {
+          console.log("Loading route", route.saveWord());
+          loadedroute = route;
+          break;
+        }
+        if (loadedroute !== undefined) {
+          break;
+        }
+      }
+    }
+    return loadedroute;
   }
 }

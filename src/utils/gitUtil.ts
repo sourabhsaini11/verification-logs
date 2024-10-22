@@ -1,5 +1,6 @@
 import axios from "axios";
 import { LogVerificationPayload } from "../types/interface.js";
+import chalk from "chalk";
 
 // import { Context } from "probot/lib/context.js";
 export async function fetchGitHubFiles(
@@ -62,13 +63,10 @@ export async function exploreGitHubFolder(
   const curls: LogVerificationPayload[] = [];
   for (const file of files) {
     if (file.type === "file") {
-      console.log(`Fetching content for file: ${file.name}`);
       const content = await fetchFileContentRaw(owner, repo, branch, file.path);
-      console.log(`\n=== Content of ${file.name} ===\n`);
       const data = content;
       let action = file.name.split(".")[0];
       payloads.payload[action] = data;
-      console.log("\n=====================\n");
     } else if (file.type === "dir") {
       const flow = file.name;
       const ans = await exploreGitHubFolder(
@@ -134,6 +132,10 @@ export async function getStructureHelper(
 }
 
 export async function labelPr(domain: string, context: any) {
+  if (!context) {
+    console.log(chalk.red("Context is not provided"));
+    return;
+  }
   const prNumber = context.payload.issue.number;
   const owner = context.repo().owner;
   const repo = context.repo().repo;
