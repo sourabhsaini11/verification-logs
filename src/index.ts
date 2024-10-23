@@ -5,6 +5,7 @@ import { IssueComment } from "./types/interface.js";
 // import { labelPr } from "./utils/gitUtil.js";
 // import { generateFinalMessage } from "./services/gistService.js";
 import { ChatBotController } from "./controller/chat-bot-controller.js";
+import chalk from "chalk";
 
 export default (app: Probot) => {
   app.on(
@@ -57,14 +58,18 @@ export default (app: Probot) => {
       repo,
       pull_number: issueNumber,
     });
-    const { data: comments } = await context.octokit.issues.listComments({
+    const comments = await getFilteredComments(
+      context,
       owner,
       repo,
-      issue_number: issueNumber,
-    });
-    var prevComments: IssueComment[] = comments.map((c) => {
+      prDetails,
+      issueNumber
+    );
+    const prevComments: IssueComment[] = comments.map((c: any) => {
       return { comment: c.body ?? "", type: c.user?.type || "" };
     });
+
+    console.log(chalk.blueBright("prevComments", prevComments));
     const botComments = prevComments
       .filter((c) => c.type === "Bot")
       .map((c) => c.comment);
@@ -92,7 +97,7 @@ export default (app: Probot) => {
       botComments ?? []
     );
     const response = await chatBot.replyToUser(newComment);
-    console.log("response", response);
+    // console.log("response", response);
     const responseMessage = response.split("$$")[0];
     let meta =
       response.split("$$").length > 1 ? response.split("$$")[1] : undefined;
@@ -125,3 +130,47 @@ export default (app: Probot) => {
     await context.octokit.issues.createComment(prComment);
   });
 };
+
+// Get the comments after PR reopened or new commits were pushed
+async function getFilteredComments(
+  context: any,
+  owner: string,
+  repo: string,
+  prDetails: any,
+  issueNumber: number
+) {
+  // Get all comments for the PR
+  const { data: comments } = await context.octokit.issues.listComments({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  // Get PR events (reopened, synchronize)
+  const { data: events } = await context.octokit.issues.listEvents({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  // Track the most recent 'reopened' or 'synchronize' event
+  let latestEventTime = new Date(prDetails.data.created_at); // Start with PR creation time
+
+  for (const event of events) {
+    if (event.event === "reopened" || event.event === "synchronize") {
+      console.log(event.event, event.created_at);
+      const eventTime = new Date(event.created_at);
+      if (eventTime > latestEventTime) {
+        latestEventTime = eventTime; // Update to the latest event time
+      }
+    }
+  }
+  // Filter comments made after the latest 'reopened' or 'synchronize' event
+  const filteredComments = comments.filter((comment: any) => {
+    const commentTime = new Date(comment.created_at);
+    console.log(chalk.redBright(commentTime, latestEventTime), comment.body);
+    return commentTime > latestEventTime;
+  });
+
+  return filteredComments;
+}

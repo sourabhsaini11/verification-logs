@@ -13,7 +13,7 @@ export async function generateFinalMessage(
   const url = await createGist(token, message, `response-${issueNumber}.txt`);
   if (url) {
     return `📑 the report for the logs has been generated and can be found [here](${url}) 
-    - to verify the logs again just tag me again at ${botUserName}`;
+   \n - to verify the logs again just tag me again at ${botUserName}`;
   }
   return url ?? "Failed to create gist";
 }

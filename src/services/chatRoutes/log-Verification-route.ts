@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { PrChatBotRequiments } from "../../types/interface.js";
 import {
   extractJSONObject,
@@ -78,7 +79,7 @@ export class LogVerificationRoute extends ConversationRoute {
     userResponses: string[],
     botResponses: string[]
   ) {
-    console.log("botResponses", botResponses);
+    console.log(chalk.black("botResponses", botResponses));
     const messages = [...userResponses, newMessage];
     for (const mess of messages) {
       const jsonData = extractJSONObject(mess);
