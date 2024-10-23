@@ -41,7 +41,7 @@ export class ChatBotController {
       return "🔄 Conversation reset successfully! \n" + this.initMessage();
     }
     let reply = "";
-    if (this.userResponses.length === 1) {
+    if (this.userResponses.length <= 0) {
       reply = this.initMessage();
     } else {
       reply =

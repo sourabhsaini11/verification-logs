@@ -6,32 +6,38 @@ import { IssueComment } from "./types/interface.js";
 // import { generateFinalMessage } from "./services/gistService.js";
 import { ChatBotController } from "./controller/chat-bot-controller.js";
 import chalk from "chalk";
+import { getFilteredComments } from "./utils/probotUtils.js";
 
 export default (app: Probot) => {
-  app.on(
-    [
-      "pull_request.opened",
-      "pull_request.reopened",
-      "pull_request.synchronize",
-    ],
-    async (context) => {
-      const prComment = context.issue({
-        body: `Hello, Please tag me at ${botUserName} in a comment to verify the logs. `,
-      });
-      await context.octokit.issues.createComment(prComment);
-      const prDetails = await context.octokit.pulls.get(
-        context.repo({ pull_number: context.payload.pull_request.number })
-      );
-      const rep = context.repo();
-      await context.octokit.repos.createCommitStatus({
-        ...rep,
-        sha: prDetails.data.head.sha,
-        state: "pending", // This marks the status as failed
-        context: "ondc-bot-validations",
-        description: "waiting for user to initiate the validation",
-      });
-    }
-  );
+  app.on(["pull_request.opened", "pull_request.reopened"], async (context) => {
+    const chat = new ChatBotController(
+      {
+        changedFiles: [],
+        forkBranch: "master",
+        forkOwnerId: "",
+        forkRepoName: "",
+        issueNumber: 0,
+        context: context,
+      },
+      [],
+      []
+    );
+    const prComment = context.issue({
+      body: await chat.replyToUser(""),
+    });
+    await context.octokit.issues.createComment(prComment);
+    const prDetails = await context.octokit.pulls.get(
+      context.repo({ pull_number: context.payload.pull_request.number })
+    );
+    const rep = context.repo();
+    await context.octokit.repos.createCommitStatus({
+      ...rep,
+      sha: prDetails.data.head.sha,
+      state: "pending", // This marks the status as failed
+      context: "ondc-bot-validations",
+      description: "waiting for user to initiate the validation",
+    });
+  });
   app.on("issue_comment.created", async (context) => {
     if (context.isBot) {
       return;
@@ -69,7 +75,9 @@ export default (app: Probot) => {
       return { comment: c.body ?? "", type: c.user?.type || "" };
     });
 
-    console.log(chalk.blueBright("prevComments", prevComments));
+    console.log(
+      chalk.blueBright("prevComments", JSON.stringify(prevComments, null, 2))
+    );
     const botComments = prevComments
       .filter((c) => c.type === "Bot")
       .map((c) => c.comment);
@@ -97,7 +105,7 @@ export default (app: Probot) => {
       botComments ?? []
     );
     const response = await chatBot.replyToUser(newComment);
-    // console.log("response", response);
+    console.log(chalk.magentaBright("response", response));
     const responseMessage = response.split("$$")[0];
     let meta =
       response.split("$$").length > 1 ? response.split("$$")[1] : undefined;
@@ -130,47 +138,3 @@ export default (app: Probot) => {
     await context.octokit.issues.createComment(prComment);
   });
 };
-
-// Get the comments after PR reopened or new commits were pushed
-async function getFilteredComments(
-  context: any,
-  owner: string,
-  repo: string,
-  prDetails: any,
-  issueNumber: number
-) {
-  // Get all comments for the PR
-  const { data: comments } = await context.octokit.issues.listComments({
-    owner,
-    repo,
-    issue_number: issueNumber,
-  });
-
-  // Get PR events (reopened, synchronize)
-  const { data: events } = await context.octokit.issues.listEvents({
-    owner,
-    repo,
-    issue_number: issueNumber,
-  });
-
-  // Track the most recent 'reopened' or 'synchronize' event
-  let latestEventTime = new Date(prDetails.data.created_at); // Start with PR creation time
-
-  for (const event of events) {
-    if (event.event === "reopened" || event.event === "synchronize") {
-      console.log(event.event, event.created_at);
-      const eventTime = new Date(event.created_at);
-      if (eventTime > latestEventTime) {
-        latestEventTime = eventTime; // Update to the latest event time
-      }
-    }
-  }
-  // Filter comments made after the latest 'reopened' or 'synchronize' event
-  const filteredComments = comments.filter((comment: any) => {
-    const commentTime = new Date(comment.created_at);
-    console.log(chalk.redBright(commentTime, latestEventTime), comment.body);
-    return commentTime > latestEventTime;
-  });
-
-  return filteredComments;
-}

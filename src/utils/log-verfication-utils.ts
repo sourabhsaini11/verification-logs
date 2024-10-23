@@ -20,8 +20,11 @@ export function validRequest(domain: string) {
     };
   }
   return {
-    response: `😓 Oops! this Domain ${domain} is not yet supported by the bot \n 
-    > Supported Domains are: ${supportedDomains.join(", ")}`,
+    response:
+      `😓 Oops! this Domain ${domain} is not yet supported by the bot \n > Supported Domains are: ${supportedDomains.join(
+        ", "
+      )}` +
+      generateMetaResponse("failure", "domain not yet supported by the bot"),
     valid: false,
   };
 }
@@ -31,7 +34,8 @@ export function validPullRequest(domain: string, changedFileNames: string[]) {
   if (changedFileNames.length === 0) {
     return {
       response:
-        "🧐 No changes found in the Pull Request! Cannot verify the logs.",
+        "🧐 No changes found in the Pull Request! Cannot verify the logs." +
+        generateMetaResponse("failure", "no changes found in the PR"),
       valid: false,
     };
   }
@@ -186,11 +190,6 @@ async function verifyStructure(
     valid: true,
   };
 }
-
-// function generateMessage(missingFiles: string[]) {
-//   const message = "🚨 Missing files: ";
-//   return missingFiles.reduce((acc, file) => acc + `\n- ${file}`, message);
-// }
 
 function convertToFiles(
   requiredStruct: Record<string, string[]>,

@@ -48,7 +48,6 @@ export class LogVerificationRoute extends ConversationRoute {
         generateMetaResponse("pending", "missing required information")
       );
     }
-    labelPr(this.domain as string, context.context);
     const request = validRequest(this.domain as string); // verify domain
     if (!request.valid) {
       return request.response;
@@ -60,6 +59,7 @@ export class LogVerificationRoute extends ConversationRoute {
     if (!verifyPr.valid) {
       return verifyPr.response;
     }
+    labelPr(this.domain as string, context.context);
     const spliFilesPath = context.changedFiles[0].split("/");
     const logs = await verifyLogs(
       this.domain as string,
@@ -80,6 +80,7 @@ export class LogVerificationRoute extends ConversationRoute {
     botResponses: string[]
   ) {
     console.log(chalk.black("botResponses", botResponses));
+    console.log(chalk.bold("userResponses", userResponses));
     const messages = [...userResponses, newMessage];
     for (const mess of messages) {
       const jsonData = extractJSONObject(mess);
