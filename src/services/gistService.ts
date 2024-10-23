@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest";
+import { botUserName } from "../constants/index.js";
 // import { botUserName } from "../constants/index.js";
 
 export async function generateFinalMessage(
@@ -11,7 +12,8 @@ export async function generateFinalMessage(
   }
   const url = await createGist(token, message, `response-${issueNumber}.txt`);
   if (url) {
-    return `:white_check_mark: [View the logs](${url})`;
+    return `📑 the report for the logs has been generated and can be found [here](${url}) 
+    - to verify the logs again just tag me again at ${botUserName}`;
   }
   return url ?? "Failed to create gist";
 }

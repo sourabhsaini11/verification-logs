@@ -5,7 +5,6 @@ import { IssueComment } from "./types/interface.js";
 // import { labelPr } from "./utils/gitUtil.js";
 // import { generateFinalMessage } from "./services/gistService.js";
 import { ChatBotController } from "./controller/chat-bot-controller.js";
-import chalk from "chalk";
 
 export default (app: Probot) => {
   app.on(
@@ -53,15 +52,6 @@ export default (app: Probot) => {
     const forkOwner = prDetails.data.head.repo?.owner.login; // Fork owner's GitHub username
     const forkRepoName = prDetails.data.head.repo?.full_name; // Full name of the forked repository
     const forkBranch = prDetails.data.head.ref; // Branch name of the forked repo
-    console.log("details", prDetails);
-    const createdAt = prDetails.data.created_at; // When the PR was created
-    const updatedAt = prDetails.data.updated_at; // When the PR was last updated
-    console.log(
-      chalk.greenBright(
-        `PR created at: ${createdAt}`,
-        `PR updated at: ${updatedAt}`
-      )
-    );
     const changedFiles = await context.octokit.pulls.listFiles({
       owner,
       repo,
@@ -96,15 +86,16 @@ export default (app: Probot) => {
         forkOwnerId: forkOwner ?? owner,
         forkRepoName: forkRepoName ?? repo,
         issueNumber: issueNumber,
+        context: context,
       },
       userComments ?? [],
       botComments ?? []
     );
     const response = await chatBot.replyToUser(newComment);
+    console.log("response", response);
     const responseMessage = response.split("$$")[0];
     let meta =
       response.split("$$").length > 1 ? response.split("$$")[1] : undefined;
-    console.log("response", response);
     const prComment = context.issue({
       body: responseMessage,
     });

@@ -142,21 +142,21 @@ export async function labelPr(domain: string, context: any) {
 
   try {
     // Fetch all labels in the repository
-    const { data: repoLabels } = await context.octokit.issues.listLabelsForRepo(
-      {
-        owner,
-        repo,
-      }
-    );
+    // const { data: repoLabels } = await context.octokit.issues.listLabelsForRepo(
+    //   {
+    //     owner,
+    //     repo,
+    //   }
+    // );
     // console.log("repoLabels", repoLabels);
     // Check if the specified label exists in the repository
-    const labelExistsInRepo = repoLabels.some(
-      (label: any) => label.name === domain
-    );
-    if (!labelExistsInRepo) {
-      console.log(`Label "${domain}" does not exist in the repository.`);
-      return; // Exit if the label does not exist
-    }
+    // const labelExistsInRepo = repoLabels.some(
+    //   (label: any) => label.name === domain
+    // );
+    // if (!labelExistsInRepo) {
+    //   console.log(`Label "${domain}" does not exist in the repository.`);
+    //   return; // Exit if the label does not exist
+    // }
 
     // Check if the label already exists on the PR
     const { data: prLabels } = await context.octokit.issues.listLabelsOnIssue({

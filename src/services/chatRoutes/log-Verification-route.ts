@@ -42,7 +42,10 @@ export class LogVerificationRoute extends ConversationRoute {
     // perform folder validations
     // verify logs
     if (!this.infoComplete()) {
-      return this.getFirstMessage(false);
+      return (
+        this.getFirstMessage(false) +
+        generateMetaResponse("pending", "missing required information")
+      );
     }
     labelPr(this.domain as string, context.context);
     const request = validRequest(this.domain as string); // verify domain
@@ -80,7 +83,6 @@ export class LogVerificationRoute extends ConversationRoute {
     for (const mess of messages) {
       const jsonData = extractJSONObject(mess);
       if (jsonData) {
-        console.log("jsonData", jsonData);
         if (jsonData.domain) this.domain = jsonData.domain;
         if (jsonData.version) this.version = jsonData.version;
         if (jsonData.npType) this.npType = jsonData.npType;
