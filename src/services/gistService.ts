@@ -4,6 +4,7 @@ import { botUserName } from "../constants/index.js";
 
 export async function generateFinalMessage(
   message: string,
+  missingFiles: number,
   issueNumber: number
 ) {
   var token = process.env.GIST_TOKEN;
@@ -12,7 +13,7 @@ export async function generateFinalMessage(
   }
   const url = await createGist(token, message, `response-${issueNumber}.txt`);
   if (url) {
-    return `📌 the log report has been succesfully generated and can be found [here](${url})\n- to verify the logs again just tag me again at ${botUserName}`;
+    return `⚠️ MISSING ${missingFiles} FILES! \n📌 the log validations executed and results can be found [here](${url})\n- to verify the logs again just tag me again at ${botUserName}`;
   } // 7 file missing \n log validation executed [result](url) 37 errros found
   return url ?? "Failed to create gist";
 }

@@ -130,7 +130,7 @@ export async function verifyLogs(
     repoName
   );
   if (!struct.valid) {
-    return struct.message as string;
+    return { response: struct.message as string, missingFiles: 0 };
   }
   const fixed = `${folderPath}/${verificationType}`;
 
@@ -149,7 +149,11 @@ export async function verifyLogs(
     finalResponse[curl.flow] = await sendVerificationPayload(curl);
   }
   finalResponse["missing-files"] = struct.message;
-  return JSON.stringify(finalResponse, null, 2);
+  const missingFilesSize = struct.message.length;
+  return {
+    response: JSON.stringify(finalResponse, null, 2),
+    missingFiles: missingFilesSize,
+  };
 }
 
 async function verifyStructure(

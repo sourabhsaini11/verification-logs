@@ -72,7 +72,11 @@ export class LogVerificationRoute extends ConversationRoute {
       context.forkRepoName
     );
 
-    const gist = await generateFinalMessage(logs, context.issueNumber);
+    const gist = await generateFinalMessage(
+      logs.response,
+      logs.missingFiles,
+      context.issueNumber
+    );
     return gist + generateMetaResponse("success", "pull request is valid");
   }
   private loadChat(
