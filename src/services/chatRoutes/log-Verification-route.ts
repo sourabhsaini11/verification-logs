@@ -54,6 +54,7 @@ export class LogVerificationRoute extends ConversationRoute {
     }
     const verifyPr = validPullRequest(
       this.domain as string,
+      this.validationType as string,
       context.changedFiles
     );
     if (!verifyPr.valid) {
@@ -72,7 +73,7 @@ export class LogVerificationRoute extends ConversationRoute {
     );
 
     const gist = await generateFinalMessage(logs, context.issueNumber);
-    return gist + generateMetaResponse("success", "file changes are valid");
+    return gist + generateMetaResponse("success", "pull request is valid");
   }
   private loadChat(
     newMessage: string,
@@ -101,24 +102,29 @@ export class LogVerificationRoute extends ConversationRoute {
     }
     return this.domain && this.version && this.npType && this.validationType;
   }
+  private partialInfo() {
+    return this.domain || this.version || this.npType || this.validationType;
+  }
   private getFirstMessage(firstTime = true): string {
     let message = `Hi, please fill out the following template and comment back:
   \`\`\`json
   {
     "domain": "ENTER DOMAIN",
     "version": "ENTER VERSION",
-    "npType": "BAP,BPP or BOTH",
+    "npType": "BAP or BPP or BOTH",
     "validationType": "RSF or IGM or TRANSACTION"
   }
   \`\`\`
 
    - Provide a valid json 
   `;
-    if (!firstTime) {
-      if (!this.domain) message += "- _missing domain_ \n";
-      if (!this.version) message += "- _missing version_ \n";
-      if (!this.npType) message += "- _missing npType_ \n";
-      if (!this.validationType) message += "- _missing validationType_ \n";
+    // ! improve valid json message // incorrect json fromat provided
+    if (!firstTime && this.partialInfo()) {
+      if (!this.domain) message += "- _currently missing domain_ \n";
+      if (!this.version) message += "- _currently missing version_ \n";
+      if (!this.npType) message += "- _currently missing npType_ \n";
+      if (!this.validationType)
+        message += "- _currently missing validationType_ \n";
     }
     return message;
   }

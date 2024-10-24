@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { botUserName } from "../constants/index.js";
 import { ConversationRoute } from "../services/chatRoutes/conversation-route.js";
 import { LogVerificationRoute } from "../services/chatRoutes/log-Verification-route.js";
@@ -19,7 +20,8 @@ export class ChatBotController {
     this.userResponses = userResponses;
     this.botResponses = botResponses;
     this.context = requirements;
-    this.currentRoute = this.loadRoute(botResponses);
+    // this.currentRoute = this.loadRoute(botResponses);
+    this.currentRoute = this.routes[0];
   }
   private InitBot() {
     this.routes = [new LogVerificationRoute()];
@@ -36,12 +38,8 @@ export class ChatBotController {
     return message;
   }
   public async replyToUser(message: string) {
-    if (message === "BOT_NHK") {
-      this.InitBot();
-      return "🔄 Conversation reset successfully! \n" + this.initMessage();
-    }
     let reply = "";
-    if (this.userResponses.length <= 0) {
+    if (this.userResponses.length <= 0 && this.currentRoute === undefined) {
       reply = this.initMessage();
     } else {
       reply =
@@ -55,10 +53,11 @@ export class ChatBotController {
               this.currentRoute
             );
     }
+    console.log(chalk.bgYellowBright(reply));
     const meta =
       reply.split("$$").length > 1 ? reply.split("$$")[1] : undefined;
     reply = reply.split("$$")[0];
-    reply += `\n > Note: \n > 1. Always tag me at ${botUserName} in the comment to get a reply \n > 2. Comment 'BOT_NHK' to reset the conversation anytime`;
+    reply += `\n > Note: \n > 1. Always tag me at ${botUserName} in the comment to get a reply \n > 2. Close and reopen the PR to reset the conversation`;
     reply += meta ? `$$ ${meta}` : "";
     return reply;
   }
@@ -105,20 +104,20 @@ export class ChatBotController {
       this.currentRoute
     );
   }
-  private loadRoute(botMessages: string[]) {
-    let loadedroute = undefined;
-    for (const message of botMessages) {
-      for (const route of this.routes) {
-        if (message.includes(`~${route.saveWord()}`)) {
-          console.log("Loading route", route.saveWord());
-          loadedroute = route;
-          break;
-        }
-        if (loadedroute !== undefined) {
-          break;
-        }
-      }
-    }
-    return loadedroute;
-  }
+  // private loadRoute(botMessages: string[]) {
+  //   let loadedroute = undefined;
+  //   for (const message of botMessages) {
+  //     for (const route of this.routes) {
+  //       if (message.includes(`~${route.saveWord()}`)) {
+  //         console.log("Loading route", route.saveWord());
+  //         loadedroute = route;
+  //         break;
+  //       }
+  //       if (loadedroute !== undefined) {
+  //         break;
+  //       }
+  //     }
+  //   }
+  // return loadedroute;
+  // }
 }

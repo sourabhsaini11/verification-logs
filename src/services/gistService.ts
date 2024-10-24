@@ -12,8 +12,8 @@ export async function generateFinalMessage(
   }
   const url = await createGist(token, message, `response-${issueNumber}.txt`);
   if (url) {
-    return `📑 the report for the logs has been generated and can be found [here](${url})\n- to verify the logs again just tag me again at ${botUserName}`;
-  }
+    return `📌 the log report has been succesfully generated and can be found [here](${url})\n- to verify the logs again just tag me again at ${botUserName}`;
+  } // 7 file missing \n log validation executed [result](url) 37 errros found
   return url ?? "Failed to create gist";
 }
 
@@ -49,3 +49,5 @@ async function createGist(
     throw new Error(`Failed to create Gist: ${error.message}`);
   }
 }
+
+// ! multiple brances : 3. happy flow(no errors) 1. files errors 2. validation errors

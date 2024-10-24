@@ -22,8 +22,10 @@ export default (app: Probot) => {
       [],
       []
     );
+    const reply = await chat.replyToUser("");
+    const message = reply.split("$$")[0];
     const prComment = context.issue({
-      body: await chat.replyToUser(""),
+      body: message,
     });
     await context.octokit.issues.createComment(prComment);
     const prDetails = await context.octokit.pulls.get(
@@ -38,7 +40,8 @@ export default (app: Probot) => {
       description: "waiting for user to initiate the validation",
     });
   });
-  app.on("issue_comment.created", async (context) => {
+  app.on(["issue_comment.created"], async (context) => {
+    console.log("issue_comment.created");
     if (context.isBot) {
       return;
     }
@@ -74,10 +77,6 @@ export default (app: Probot) => {
     const prevComments: IssueComment[] = comments.map((c: any) => {
       return { comment: c.body ?? "", type: c.user?.type || "" };
     });
-
-    console.log(
-      chalk.blueBright("prevComments", JSON.stringify(prevComments, null, 2))
-    );
     const botComments = prevComments
       .filter((c) => c.type === "Bot")
       .map((c) => c.comment);

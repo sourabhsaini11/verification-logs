@@ -21,7 +21,7 @@ export function validRequest(domain: string) {
   }
   return {
     response:
-      `😓 Oops! this Domain ${domain} is not yet supported by the bot \n > Supported Domains are: ${supportedDomains.join(
+      `🚧 Oops! this Domain ${domain} is not yet supported by the bot \n > Supported Domains are: ${supportedDomains.join(
         ", "
       )}` +
       generateMetaResponse("failure", "domain not yet supported by the bot"),
@@ -29,7 +29,11 @@ export function validRequest(domain: string) {
   };
 }
 
-export function validPullRequest(domain: string, changedFileNames: string[]) {
+export function validPullRequest(
+  domain: string,
+  validationType: string,
+  changedFileNames: string[]
+) {
   // If no files are changed, return an error.
   if (changedFileNames.length === 0) {
     return {
@@ -44,6 +48,7 @@ export function validPullRequest(domain: string, changedFileNames: string[]) {
   let npNameSet = new Set<string>();
   let errors: string[] = [];
   let validations = ["RSF", "IGM", "TRANSACTION"];
+  // add example path in the error message
   for (const file of changedFileNames) {
     const splitFilePath = file.split("/");
 
@@ -79,15 +84,14 @@ export function validPullRequest(domain: string, changedFileNames: string[]) {
   // If more than one np_name folder was found, return an error
   if (npNameSet.size > 1) {
     errors.push(
-      `⚠️ Found changes in multiple "NP_NAME" folders (${Array.from(
-        npNameSet
-      ).join(
+      `⚠️ Found changes in multiple NP's folders (${Array.from(npNameSet).join(
         ", "
-      )}). Please ensure that all changes are within the same "NP_NAME" folder.`
+      )}). Please ensure that all changes are within the folder of single NP.`
     );
   }
   const finalResponse =
     errors.join("\n") +
+    `\n > Example path: ${domain}/{NP_NAME}/${validationType}/{FLOW_NAME}/{ACTION.json}` +
     generateMetaResponse(
       "failure",
       "please check the pr comments and correct the files"

@@ -1,5 +1,3 @@
-import chalk from "chalk";
-
 // Get the comments after PR reopened or new commits were pushed
 export async function getFilteredComments(
   context: any,
@@ -39,7 +37,6 @@ export async function getFilteredComments(
   // Filter comments made after the latest 'reopened' or 'synchronize' event
   const filteredComments = sortedComments.filter((comment: any) => {
     const commentTime = new Date(comment.created_at);
-    console.log(chalk.redBright(commentTime, latestEventTime), comment.body);
     return commentTime > latestEventTime;
   });
 
