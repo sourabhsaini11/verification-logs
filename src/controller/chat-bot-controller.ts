@@ -53,7 +53,6 @@ export class ChatBotController {
               this.currentRoute
             );
     }
-    console.log(chalk.bgYellowBright(reply));
     const meta =
       reply.split("$$").length > 1 ? reply.split("$$")[1] : undefined;
     reply = reply.split("$$")[0];

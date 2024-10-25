@@ -130,7 +130,11 @@ export async function verifyLogs(
     repoName
   );
   if (!struct.valid) {
-    return { response: struct.message as string, missingFiles: 0 };
+    return {
+      response: struct.message as string,
+      missingFiles: 0,
+      errorCount: 0,
+    };
   }
   const fixed = `${folderPath}/${verificationType}`;
 
@@ -149,9 +153,13 @@ export async function verifyLogs(
     finalResponse[curl.flow] = await sendVerificationPayload(curl);
   }
   finalResponse["missing-files"] = struct.message;
-  const missingFilesSize = struct.message.length;
+  const missingFilesSize = Array.isArray(struct.message)
+    ? struct.message.length
+    : 0;
+  const errorCount = countErrorsInReports(finalResponse);
   return {
     response: JSON.stringify(finalResponse, null, 2),
+    errorCount: errorCount,
     missingFiles: missingFilesSize,
   };
 }
@@ -213,4 +221,39 @@ function convertToFiles(
     });
   }
   return files;
+}
+
+type ReportObject = Record<string, any>;
+
+function countErrorsInReports(data: Record<string, any>): number {
+  let errorCount = 0;
+
+  // Function to count all properties (errors) inside the report object recursively
+  function countErrorsInReport(report: ReportObject): number {
+    let count = 0;
+
+    for (const key in report) {
+      if (typeof report[key] === "object" && report[key] !== null) {
+        // Recursively count errors if the value is an object
+        count += countErrorsInReport(report[key]);
+      } else {
+        // Count this as an error (every key-value pair is considered an error)
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  // Loop over each top-level key in the provided data
+  for (const key in data) {
+    const item = data[key];
+
+    // If the item contains a "report" field, count its errors
+    if (item && item.report) {
+      errorCount += countErrorsInReport(item.report);
+    }
+  }
+
+  return errorCount;
 }

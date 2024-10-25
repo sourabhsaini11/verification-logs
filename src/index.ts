@@ -9,6 +9,19 @@ import chalk from "chalk";
 import { getFilteredComments } from "./utils/probotUtils.js";
 
 export default (app: Probot) => {
+  app.on("pull_request.synchronize", async (context) => {
+    const prDetails = await context.octokit.pulls.get(
+      context.repo({ pull_number: context.payload.pull_request.number })
+    );
+    const rep = context.repo();
+    await context.octokit.repos.createCommitStatus({
+      ...rep,
+      sha: prDetails.data.head.sha,
+      state: "pending", // This marks the status as failed
+      context: "ondc-bot-validations",
+      description: "waiting for user to initiate the validation",
+    });
+  });
   app.on(["pull_request.opened", "pull_request.reopened"], async (context) => {
     const chat = new ChatBotController(
       {

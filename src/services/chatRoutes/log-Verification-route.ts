@@ -75,6 +75,7 @@ export class LogVerificationRoute extends ConversationRoute {
     const gist = await generateFinalMessage(
       logs.response,
       logs.missingFiles,
+      logs.errorCount,
       context.issueNumber
     );
     return gist + generateMetaResponse("success", "pull request is valid");
