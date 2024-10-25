@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { botUserName } from "../constants/index.js";
 import { ConversationRoute } from "../services/chatRoutes/conversation-route.js";
 import { LogVerificationRoute } from "../services/chatRoutes/log-Verification-route.js";
