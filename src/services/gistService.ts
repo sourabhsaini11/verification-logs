@@ -8,11 +8,7 @@ export async function generateFinalMessage(
   errorCount: number,
   issueNumber: number
 ) {
-  var token = process.env.GIST_TOKEN;
-  if (!token) {
-    return "Please add GIST_TOKEN in the environment variables";
-  }
-  const url = await createGist(token, message, `response-${issueNumber}.txt`);
+  const url = await createGist(message, `response-${issueNumber}.txt`);
   if (url) {
     const missing =
       missingFiles > 0
@@ -37,11 +33,15 @@ export async function generateFinalMessage(
  * @returns The URL of the created Gist.
  */
 async function createGist(
-  authToken: string,
   message: string,
   fileName: string = "response.txt",
   isPublic: boolean = true
 ): Promise<string | undefined> {
+  var authToken = process.env.GIST_TOKEN;
+  if (!authToken) {
+    console.error("Please add GIST_TOKEN in the environment variables");
+    return undefined;
+  }
   // Initialize Octokit with authentication
   const octokit = new Octokit({ auth: authToken });
 
@@ -59,5 +59,3 @@ async function createGist(
     throw new Error(`Failed to create Gist: ${error.message}`);
   }
 }
-
-// ! multiple brances : 3. happy flow(no errors) 1. files errors 2. validation errors
