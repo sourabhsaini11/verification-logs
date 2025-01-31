@@ -100,6 +100,7 @@ export default (app: Probot) => {
 			domain: names[0].split("/")[0],
 		};
 		await createRow(data);
+		return true;
 	});
 };
 
