@@ -72,8 +72,8 @@
                   "short_desc": "Short description.............",
                   "long_desc": "long description..........",
                   "images": [
-                    "https://catalogueproductfiles.s3.ap-south-1.amazonaws.com/brands/file_example_PNG_1MB.png"
-                  ]
+                    "https://catalogueproductfiles.s3.ap-south-2.amazonaws.com/brands/file_example_PNG_1MB.png"
+                  ] 
                 },
                 "price": {
                   "currency": "INR",
