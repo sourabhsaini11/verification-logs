@@ -11,7 +11,7 @@
         },
         "action": "init",
         "version": "2.0.0",
-        "timestamp": "2024-06-11T09:07:06.820Z",
+        "timestamp": "2024-06-11T09:07:06.821Z",
         "ttl": "PT10M",
         "bap_id": "pramaan.ondc.org/beta/preprod/mock/buyer",
         "bap_uri": "https://pramaan.ondc.org/beta/preprod/mock/buyer",
